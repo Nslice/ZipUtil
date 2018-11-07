@@ -1,3 +1,5 @@
 /.idea
 /out
 *.iml
+/input/*.mp3
+/input/*.mp4
