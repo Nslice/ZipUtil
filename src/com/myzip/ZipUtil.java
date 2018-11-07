@@ -1,13 +1,30 @@
 package com.myzip;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.attribute.FileTime;
+import java.util.Enumeration;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class ZipUtil
 {
     public static void main(String[] args)
     {
+
+        /**
+         При считывании записейй zip'а
+         может вылетать исключение из-за проблеем с кодировкой.
+         при архивации WinRar'ом в zip с кириллцей возникало исключение  java.lang.IllegalArgumentException: MALFORMED
+
+         решение
+         Charset cp866 = Charset.forName("CP866");
+         ZipFile file = new ZipFile("архив.zip", cp866);
+         */
+
         System.out.println("ZipUtil.main");
         try (ZipOutputStream stream = new ZipOutputStream(new FileOutputStream(args[1])))
         {
@@ -21,7 +38,9 @@ public class ZipUtil
                 else System.out.println("       " + f.getName());
             }
 
-            doZip(stream, file);
+            byte[] buffer = new byte[8192];
+
+            doZip(stream, file, buffer);
 
         }
         catch (IOException ex)
@@ -33,24 +52,39 @@ public class ZipUtil
         System.out.println("Done.");
     }
 
-    public static void doZip(ZipOutputStream stream, File dir) throws IOException
+
+    /**
+     * Создает ZIP-архив
+     *
+     * @param stream
+     * @param dir
+     * @param buffer
+     * @throws IOException
+     */
+    public static void doZip(ZipOutputStream stream, File dir, byte[] buffer) throws IOException
     {
         for (File f : dir.listFiles())
         {
             if (f.isDirectory())
             {
                 //для пустых папок:
-                stream.putNextEntry(new ZipEntry(f.getPath() + "/"));
-                doZip(stream, f);
+                ZipEntry entry = new ZipEntry(f.getPath() + "\\");  // тут проблемма, не создаются директории
+                entry.setLastModifiedTime(FileTime.fromMillis(f.lastModified()));
+                stream.putNextEntry(entry);
+
+                doZip(stream, f, buffer); //рекурсивный вызов
                 stream.closeEntry();
             }
             else
             {
-                stream.putNextEntry(new ZipEntry(f.getPath()));
-                int code;
+                ZipEntry entry = new ZipEntry(f.getPath());
+                entry.setLastModifiedTime(FileTime.fromMillis(f.lastModified()));
+                stream.putNextEntry(entry);
+
+                int length;
                 FileInputStream fin = new FileInputStream(f);
-                while ((code = fin.read()) != -1)
-                    stream.write(code);
+                while ((length = fin.read(buffer)) != -1)
+                    stream.write(buffer, 0, length);
                 stream.closeEntry();
                 fin.close();
             }
@@ -60,6 +94,30 @@ public class ZipUtil
     }
 
 
+    /**
+     * Показывает содерживое ZIP-архива
+     * @param file
+     */
+    public static void showZip(ZipFile file)
+    {
+        System.out.println("Archive name: " + file.getName());
+        System.out.println("Entries: " + file.size());
+
+        Enumeration<? extends ZipEntry> nm = file.entries();
+        System.out.println();
+
+        while (nm.hasMoreElements())
+        {
+            ZipEntry entry = nm.nextElement();
+            if (entry.isDirectory()) System.out.println("<DIR>  " + entry.getName());
+            else System.out.println("       " + entry.getName());
+        }
+
+    }
+
+    public static void unZip()
+    {
+    }
 
 
 }
