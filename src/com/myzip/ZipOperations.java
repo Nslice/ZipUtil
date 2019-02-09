@@ -10,14 +10,16 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+
 public class ZipOperations
 {
     public static final String SP = File.separator;
+    public static final int BUFF_SIZE = 8192;
 
 
     public static void doZip(ZipOutputStream stream, File path) throws IOException, ZipException
     {
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[BUFF_SIZE];
         doZip(stream, path, buffer);
     }
 
@@ -64,8 +66,7 @@ public class ZipOperations
         while (entries.hasMoreElements())
         {
             ZipEntry entry = entries.nextElement();
-            Date date = new Date(entry.getLastModifiedTime().toMillis());
-            System.out.print(form.format(date));
+            System.out.print(form.format(new Date(entry.getLastModifiedTime().toMillis())));
             System.out.println("\t" + entry.getName());
         }
     }
@@ -74,7 +75,7 @@ public class ZipOperations
     public static void unZip(ZipFile zip, File outPath) throws IOException
     {
         Enumeration<? extends ZipEntry> entries = zip.entries();
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[BUFF_SIZE];
 
         while (entries.hasMoreElements())
         {
